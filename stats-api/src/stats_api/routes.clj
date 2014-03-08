@@ -1,14 +1,14 @@
 (ns stats-api.routes
   (:use compojure.core)
   (:use ring.middleware.json)
-  (:use stats-api.data-layer.years)
   (:require [compojure.route :as route]
             [ring.adapter.jetty :as jetty]
-            ))
+            [stats-api.repository :as fetch]))
 
-(defroutes helloworld-routes
+(defroutes api-routes
            (GET "/" [] {:body "Hello Compojure!"})
-           (GET "/years" [] {:body { :years (fetch-years)}})
+           (GET "/years" [] {:body { :years (fetch/years)}})
+           (GET "/areas" [] {:body { :areas (fetch/areas)}})
            (route/not-found "Page not found"))
 
-(defn -main [] (jetty/run-jetty (wrap-json-response helloworld-routes) {:port 8080}))
+(defn -main [] (jetty/run-jetty (wrap-json-response api-routes) {:port 8080}))
