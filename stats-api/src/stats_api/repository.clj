@@ -1,3 +1,4 @@
-(ns stats-api.repository)
+(ns stats-api.repository
+  (:use stats-api.data-layer.years))
 
-  (defn fetch-years [] ["1950" "1960"])
+  (defn years [] [(fetch-years)])

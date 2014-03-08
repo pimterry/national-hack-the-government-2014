@@ -1,7 +1,7 @@
 (ns stats-api.routes
   (:use compojure.core)
   (:use ring.middleware.json)
-  (:use stats-api.repository)
+  (:use stats-api.data-layer.years)
   (:require [compojure.route :as route]
             [ring.adapter.jetty :as jetty]
             ))
