@@ -1,5 +1,6 @@
 import sys, re
 import mechanize, BeautifulSoup
+from py2neo import neo4j
 
 def get_all_election_results():
   election_urls = get_all_election_page_urls()
@@ -51,7 +52,6 @@ def get_all_overall_results(page_url):
           "year": year,
           "results": filter(lambda x: x is not None,
                             [build_result(row) for row in results_rows])
-              
       }
 
 def build_result(results_row):
@@ -67,16 +67,49 @@ def build_result(results_row):
       print "Unusual data, ignoring: %s" % (cell_values,)
     return None
 
-def insert_into_neo4j(results, neo4j_url):
-  print("NEO4J insertion not yet implemented\nResults are:\n%s" % (list(results),))
+def insert_into_neo4j(election_results):
+  print("Connecting to Neo4j")
+  db = neo4j.GraphDatabaseService()
+
+  print("Inserting results")
+  years = NodeDict(db, "year")
+  areas = NodeDict(db, "area")
+  politicians = NodeDict(db, "politician")
+  parties = NodeDict(db, "party")
+
+  for index, election in enumerate(election_results):
+    if index > 0 and index % 100 == 0:
+      print("Inserted %s single election results" % index)
+
+    election_node, = db.create({})
+    election_node.add_labels("election")
+
+    election_node.get_or_create_path("held_in", areas[election["area"]])
+    election_node.get_or_create_path("during", years[election["year"]])
+
+    for result in election["results"]:
+      person = politicians[result["person"]]
+      person.get_or_create_path(("stood_in", {"votes": person["votes"]}), election_node)
+      person.get_or_create_path("member_of", parties[result["party"]])
+
+  print("All results inserted")
+
+class NodeDict(dict):
+
+  def __init__(self, db, label):
+    self.db = db
+    self.label = label
+
+  def __getitem__(self, key):
+    try:
+      return dict.__getitem__(self, key)
+    except KeyError:
+      node, = self.db.create({"name": key})
+      node.add_labels(self.label)
+      self[key] = node
+      return node
 
 if __name__ == "__main__":
-  if len(sys.argv) < 2:
-    print("Usage: python scrape-constituency-results.py NEO4J_URL")
-    sys.exit(1)
-
-  neo4j_url = sys.argv[1]
-
-  results = get_all_election_results()
-  #insert_into_neo4j(results, neo4j_url)
+  election_results = get_all_election_results()
+  insert_into_neo4j(election_results)
 
