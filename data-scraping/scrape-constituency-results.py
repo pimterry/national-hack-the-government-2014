@@ -1,33 +1,38 @@
-import sys, re
-import mechanize, BeautifulSoup
+import sys, re, urlparse
+import mechanize, bs4 as BeautifulSoup
 from py2neo import neo4j
 
 def get_all_election_results():
   election_urls = get_all_election_page_urls()
-  for election_url in election_urls:
-    for region_url in get_all_region_urls(election_url):
+  for election_url, election_year in election_urls:
+    print "Getting election %s" % election_year
+    
+    for region_url, region_name in get_all_region_urls(election_url):
+      print "Getting region %s" % region_name
       for result in get_all_overall_results(region_url):
         yield result
 
 def get_all_election_page_urls():
   browser = mechanize.Browser()
   browser.open("http://www.politicsresources.net/area/uk/edates.htm")
-  election_links = [link for link in browser.links()
+
+  election_links = [(link, int(re.match("(\d\d\d\d): ", link.text).groups()[0]))
+                    for link in browser.links()
                     if re.match("(\d\d\d\d): ", link.text)]
 
-  election_is_after_1930 = lambda text: int(re.match("(\d\d\d\d): ", text).groups()[0]) > 1930
-  detailed_election_links = [link for link in election_links
-                                  if election_is_after_1930(link.text)]
-
-  return [link.absolute_url for link in detailed_election_links]
+  return [(link.absolute_url, date) for (link, date) in election_links
+                                    if date > 1930]
 
 def get_all_region_urls(election_url):
   browser = mechanize.Browser()
-  browser.open(election_url)
-  region_links = [link for link in browser.links()
-                       if "\xe2\x80\x94" in link.text]
+  response = browser.open(election_url)
+  html_soup = BeautifulSoup.BeautifulSoup(response.read())
+  region_links = [link for link in html_soup.findAll("a")
+                       if u'\u2014' in link.text or "&mdash;" in link.text]
 
-  return [link.absolute_url for link in region_links]
+  absolute_url = lambda link: urlparse.urljoin(election_url, link["href"])
+
+  return [(absolute_url(link), unicode(link.text)) for link in region_links]
 
 def get_all_overall_results(page_url):
   browser = mechanize.Browser()
@@ -48,14 +53,14 @@ def get_all_overall_results(page_url):
       results_rows = results_table.findAll("tr")
 
       yield {
-          "area": str(area.string),
+          "area": unicode(area.string),
           "year": year,
           "results": filter(lambda x: x is not None,
                             [build_result(row) for row in results_rows])
       }
 
 def build_result(results_row):
-  cell_values = [str(cell.string) for cell in results_row.findAll("td")]
+  cell_values = [unicode(cell.string) for cell in results_row.findAll("td")]
   try:
     return {
         "person": cell_values[0],
