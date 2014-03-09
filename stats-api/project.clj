@@ -6,6 +6,7 @@
                  [ring/ring-jetty-adapter "1.2.0"]
                  [compojure "1.1.3"]
                  [ring/ring-json "0.2.0"]
+                 [ring-cors "0.1.0"]
                  [clojurewerkz/neocons "2.0.1"]
                  [environ "0.4.0"]
                  [incanter "1.5.4"]]

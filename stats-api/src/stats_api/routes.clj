@@ -1,6 +1,7 @@
 (ns stats-api.routes
   (:use compojure.core)
   (:use ring.middleware.json)
+  (:use ring.middleware.cors)
   (:use stats-api.statistical-logic.surprise)
   (:use stats-api.statistical-logic.expectedresult)
   (:require [compojure.route :as route]
@@ -20,11 +21,17 @@
            (GET "/expected/:year/:areaId" [year areaId] {:body {:expected (multivariate-parameters year areaId)}})
 
            ;;Surprise Endpoint
-           (GET "/elections/:year/:areaId/:politicianId" [year areaId politicianId] {:body { :surprise (formatted-surprise year areaId politicianId) :expected (expected-votes year areaId politicianId) :actual (actual-votes year areaId politicianId)}})
+           (GET "/elections/:year/:areaId/:politicianId" [year areaId politicianId] 
+                {:body { :surprise (formatted-surprise year areaId politicianId)
+                         :expected (expected-votes year areaId politicianId)
+                         :actual (actual-votes year areaId politicianId)}})
 
            ;;404
            (route/not-found "Page not found"))
 
 (defn -main []
   (let [port (Integer/parseInt (get (System/getenv) "PORT" "8080"))]
-    (jetty/run-jetty (wrap-json-response api-routes) {:port port})))
+    (jetty/run-jetty
+      (-> (wrap-json-response api-routes)
+          (wrap-cors :access-control-allow-origin #".*"))
+      {:port port})))
