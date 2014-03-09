@@ -57,6 +57,41 @@
   }
 )
 
+(defn delta [year areaId]
+  (if (isFirstYearInArea year areaId)
+    (map (fn[x] {:partyName x :delta 0}) (allPartiesInElection year areaId))
+
+  (getVotesForSomeParties year areaId)
+  )
+  )
+
+(defn iterateDeltas [acc year]
+  (map
+    (fn[x] {
+             :partyName (get x :partyName)
+             :delta (+ (get x :delta)
+                       (get (getTotalVotesForParty
+                              (get x :partyName)
+                              year
+                              831)
+                        "numVotes")
+                       )
+             })
+    acc
+  )
+  )
+
+(def delta (fn [year]
+             (loop [cnt year acc (map (fn[x] {:partyName x :delta 0}) (allPartiesInElection year 831))]
+               (if (isFirstYearInArea cnt 831)
+                 acc
+                 (recur (get (safeLastYear cnt) "year") (iterateDeltas acc cnt))
+               )
+             )
+           )
+  )
+
+
 (defn scale [results]
   (map (fn[x] (scaleSingleResult x (sumResults results)))
        results

@@ -2,6 +2,7 @@
   (:use compojure.core)
   (:use ring.middleware.json)
   (:use stats-api.statistical-logic.surprise)
+  (:use stats-api.statistical-logic.expectedresult)
   (:require [compojure.route :as route]
             [ring.adapter.jetty :as jetty]
             [stats-api.data-layer.repository :as fetch]))
@@ -15,6 +16,8 @@
            (GET "/areas" [] {:body { :areas (fetch/areas)}})
            (GET "/politicians" [] {:body { :politicians (fetch/politician)}})
            (GET "/parties" [] {:body { :parties (fetch/parties)}})
+
+           (GET "/expected/:year/:areaId" [year areaId] {:body {:expected (multivariate-parameters year areaId)}})
 
            ;;Surprise Endpoint
            (GET "/elections/:year/:areaId/:politicianId" [year areaId politicianId] {:body { :surprise (formatted-surprise year areaId politicianId) :expected (expected-votes year areaId politicianId) :actual (actual-votes year areaId politicianId)}})

@@ -33,4 +33,13 @@
 
 (defn lastYear [year] (first (run-query (str "MATCH (y:year)-[p:previous]->(n:year) WHERE y.name=\"" year "\" RETURN n.name AS year"))))
 
+
+(defn isFirstYearInArea [year areaId] (= 0
+                                         (get
+                                           (first (run-query (str "MATCH (n:year)<-[r:previous]-(y:year)<-[during]-(e:election)-[held_in]->(a:area),(n)--(f:election)--(a) WHERE id(a)=" areaId " AND y.name=\"" year "\" RETURN COUNT(n) AS hasPrevious")))
+                                           "hasPrevious"
+                                         )
+                                       )
+  )
+
 (defn partyForPolitician [politicianId] (get (first (run-query (str "MATCH (p:politician)-[member_of]->(pa:party) WHERE id(p)=" politicianId "RETURN pa.name AS partyName ORDER BY pa.name"))) "partyName"))
