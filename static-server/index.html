@@ -1,5 +1,69 @@
 <html>
+<head>
+<link href='http://fonts.googleapis.com/css?family=Lato:300,400,700' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/normalize/3.0.0/normalize.min.css" />
+<link rel="stylesheet" href="/css/general.css" />
+<link rel="stylesheet" href="/css/map.css" />
+<link rel="stylesheet" href="/css/mp.css" />
+</head>
 <body>
-Hi
+
+<div class="map">
+</div>
+
+<div class="main">
+  <h1>Good Governing</h1>
+  <div class="my-mp">
+    <img src="/images" width=200 style="float: left" />
+    <h2>Your MP</h2>
+    <h3 class="name">David Jones</h3>
+    <span>1,000 vote majority - <span style="color: #ff0000">somewhat surprising</span>
+  </div>
+</div>
+
+<div class="mps-list">
+</div>
+
+<script src="/js/uk.electionmap.d3.js"></script>
+<script src="/js/d3.min.js"></script>
+<script src="/js/jquery-2.1.0.min.js"></script>
+<script src="/js/map.js"></script>
+<script>
+(function () {
+  navigator.geolocation.getCurrentPosition(function (pos) {
+    mapIt(pos.coords.latitude, pos.coords.longitude, function (areas) {
+      for (key in areas) {
+        if (areas.hasOwnProperty(key)) {
+          var constituency_name = areas[key].name;
+          break;
+        }
+      }
+
+      console.log("Your constituency is " + constituency_name);
+
+      twfy("/getMP?constituency=" + constituency_name, function (mp) {
+        $(".my-mp .name").text(mp.first_name + " " + mp.last_name)
+        $(".my-mp img").attr("src", "http://www.theyworkforyou.com" + mp.image);
+      });
+    });
+  });
+})();
+
+function twfy(apiUrl, callback) {
+  $.ajax({url: "http://www.theyworkforyou.com/api" + apiUrl + "&key=A6rFkwBfMWFLAukNqWB99npe",
+      jsonp:"callback",
+      dataType: "jsonp",
+      success: callback
+  })
+}
+
+function mapIt(lat, lng, callback) {
+  $.ajax({url: "http://mapit.mysociety.org/point/4326/" + lng + "," + lat + "?type=WMC",
+    jsonp: "callback",
+    dataType: "jsonp",
+    success: callback
+  });
+}
+</script>
 </body>
 </html>

@@ -1,0 +1,17 @@
+ html, body {
+   height: 100%;
+   overflow:hidden;
+   padding: 0;
+   margin: 0;
+ }
+
+ h1, h2, h3 {
+   font-family: "Lato", "sans";
+   padding: 0;
+   margin: 0;
+ }
+
+ h1 {
+   font-size: 80pt;
+   font-weight: bolder;
+ }
