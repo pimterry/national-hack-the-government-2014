@@ -27,10 +27,11 @@
     };
 
     draw_map(function (area) {
+      default_colour = "rgba(0,0,0,0.5)"
       if (areas[area]) {
-        return party_colours[areas[area].party] || "#EEEEEE";
+        return party_colours[areas[area].party] || default_colour;
       } else {
-        return "#EEEEEE";
+        return default_colour;
       }
     });
   });
