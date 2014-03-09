@@ -3,16 +3,23 @@
         [stats-api.data-layer.repository]))
 
 
+(defn safeLastYear [year]
+  (if (= (lastYear year) nil)
+    {"year" (str year)}
+    (lastYear year)
+  )
+)
+
 (defn lastYearResults [year areaId]
   (wardResults
-    (get (lastYear year) "year")
+    (get (safeLastYear year) "year")
     areaId
   )
 )
 
 (defn inLastYearResult [year areaId partyName]
   (contains?
-    (set (allPartiesInElection year areaId))
+    (set (allPartiesInElection (get (safeLastYear year) "year") areaId))
     partyName
   )
 )
