@@ -25,4 +25,6 @@
            ;;404
            (route/not-found "Page not found"))
 
-(defn -main [] (jetty/run-jetty (wrap-json-response api-routes) {:port 8080}))
+(defn -main []
+  (let [port (Integer/parseInt (get (System/getenv) "PORT" "8080"))]
+    (jetty/run-jetty (wrap-json-response api-routes) {:port port})))

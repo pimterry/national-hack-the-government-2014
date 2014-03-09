@@ -1,0 +1,1 @@
+web: java $JVM_OPTS -cp stats-api-*-standalone.jar clojure.main -m stats-api.routes 
