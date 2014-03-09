@@ -17,7 +17,7 @@
            (GET "/parties" [] {:body { :parties (fetch/parties)}})
 
            ;;Surprise Endpoint
-           (GET "/elections/:year/:area/:politician" [year areaId politicianId] {:body { :surprise (surprise year areaId politicianId)}})
+           (GET "/elections/:year/:areaId/:politicianId" [year areaId politicianId] {:body { :surprise (formatted-surprise year areaId politicianId) :expected (expectedVotes year areaId politicianId) :actual (actualVotes year areaId politicianId)}})
 
            ;;404
            (route/not-found "Page not found"))

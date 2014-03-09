@@ -7,7 +7,8 @@
                  [compojure "1.1.3"]
                  [ring/ring-json "0.2.0"]
                  [clojurewerkz/neocons "2.0.1"]
-                 [environ "0.4.0"]]
+                 [environ "0.4.0"]
+                 [incanter "1.5.4"]]
   :plugins [[lein-environ "0.4.0"]]
   :min-lein-version "2.0.0"
   :main stats-api.routes
