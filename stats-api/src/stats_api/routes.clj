@@ -18,13 +18,8 @@
            (GET "/politicians" [] {:body { :politicians (fetch/politician)}})
            (GET "/parties" [] {:body { :parties (fetch/parties)}})
 
-           (GET "/expected/:year/:areaId" [year areaId] {:body {:expected (multivariate-parameters year areaId)}})
-
            ;;Surprise Endpoint
-           (GET "/elections/:year/:areaId/:politicianId" [year areaId politicianId] 
-                {:body { :surprise (formatted-surprise year areaId politicianId)
-                         :expected (expected-votes year areaId politicianId)
-                         :actual (actual-votes year areaId politicianId)}})
+           (GET "/elections/:year/:areaId/:politicianId" [year areaId politicianId] {:body { :surprise (surprise year areaId politicianId)}})
 
            ;;404
            (route/not-found "Page not found"))

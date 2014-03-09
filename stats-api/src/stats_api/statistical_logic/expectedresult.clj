@@ -31,29 +31,76 @@
   )
 )
 
-(defn getTotalVotesForParty [partyName year areaId]
+(defn getTotalVotesForPartyInPreviousYear [partyName year areaId]
   {
-    "partyName" partyName,
-    "numVotes" (getVotesInPreviousElectionForParty year areaId partyName)
+    :partyName partyName,
+    :numVotes (getVotesInPreviousElectionForParty year areaId partyName)
   }
 )
 
-(defn getVotesForSomeParties [year areaId]
-  (map (fn[x] (getTotalVotesForParty x year areaId))
-       (allPartiesInElection year areaId)
+(defn getTotalVotesInAllRegionsForPartyInPreviousYear [partyName year]
+  {
+    :partyName partyName,
+    :numVotes (get (first (filter (fn[x] (= partyName (get x "partyName"))) (partyResults year))) "votes")
+    }
   )
-)
+
+(defn getTotalVotesInAYearForPartiesServingAnArea [year areaId]
+  (sum (set (map (fn[x] (get x "votes"))
+                 (filter (fn[x] (contains? (set (allPartiesInElection year areaId)) (get x "partyName"))) (partyResults year))
+                 )))
+  )
 
 (defn sumResults [results]
-  (sum (map (fn[x] (get x "numVotes"))
+  (sum (map (fn[x] (get x :numVotes))
             results)
+       )
   )
-)
+
+(defn getVotesForSomeParties [year areaId]
+  (map (fn[x] (getTotalVotesForPartyInPreviousYear x year areaId))
+       (allPartiesInElection year areaId)
+       )
+  )
+
+(defn GlobalVoteScaledToLocal [year areaId]
+  (map (fn[x]
+         {
+           :partyName x
+           :numVotes (*
+                       (/
+                         (get (getTotalVotesInAllRegionsForPartyInPreviousYear x year) :numVotes)
+                         (getTotalVotesInAYearForPartiesServingAnArea year areaId)
+                       )
+
+                       (sumResults (getVotesForSomeParties year areaId))
+                     )
+           }
+         )
+       (allPartiesInElection year areaId)
+  ))
+
+(defn GetThingWithPartyName [partyName array]
+  (first (filter (fn[x] (= partyName (get x :partyName))) array))
+  )
+
+(defn deltaUpdater [year areaId]
+  (map (fn[x]
+
+         {:partyName x
+          :numVotes (-
+                      (get (GetThingWithPartyName x (GlobalVoteScaledToLocal year areaId)) :numVotes)
+                      (get (GetThingWithPartyName x (getVotesForSomeParties year areaId)) :numVotes)
+                    )
+          }
+
+         ) (allPartiesInElection year areaId))
+  )
 
 (defn scaleSingleResult [result scaleFactor]
   {
-    "partyName" (get result "partyName")
-    "numVotes" (/ (get result "numVotes") scaleFactor)
+    "partyName" (get result :partyName)
+    "numVotes" (/ (get result :numVotes) scaleFactor)
   }
 )
 
@@ -65,16 +112,17 @@
   )
   )
 
+(def decayRate 0.5)
+
 (defn iterateDeltas [acc year]
   (map
     (fn[x] {
              :partyName (get x :partyName)
-             :delta (+ (get x :delta)
-                       (get (getTotalVotesForParty
-                              (get x :partyName)
-                              year
-                              831)
-                        "numVotes")
+             :delta (+ (* (get x :delta) decayRate)
+                       (get (GetThingWithPartyName (get x :partyName) (deltaUpdater
+                              year                        `
+                              831))
+                        :numVotes)
                        )
              })
     acc
@@ -91,6 +139,28 @@
            )
   )
 
+(defn Deviation [year areaId partyName]
+  (/
+    (-
+
+      (get (GetThingWithPartyName
+           partyName
+      (getVotesForSomeParties year areaId)
+    ), :numVotes)
+
+    (get (GetThingWithPartyName
+           partyName
+           (GlobalVoteScaledToLocal year areaId)
+           ), :numVotes)
+    )
+
+    (get (GetThingWithPartyName
+           partyName
+           (GlobalVoteScaledToLocal year areaId)
+           ), :numVotes)
+  )
+
+)
 
 (defn scale [results]
   (map (fn[x] (scaleSingleResult x (sumResults results)))

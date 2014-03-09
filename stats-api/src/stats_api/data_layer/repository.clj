@@ -22,7 +22,7 @@
                                         (e:election)-[during]->
                                         (y:year)
                                         WHERE y.name = \"" year "\"
-                                        RETURN SUM(r.votes) as partyName AS votes, pa.name AS partyName")))
+                                        RETURN SUM(r.votes) AS votes, pa.name AS partyName")))
 
 (defn  wardResults [year, areaId] (run-query (str "MATCH (pa:party)<-[member_of]-
                                                 (p:politician)-[r:stood_in]->
@@ -43,3 +43,5 @@
   )
 
 (defn partyForPolitician [politicianId] (get (first (run-query (str "MATCH (p:politician)-[member_of]->(pa:party) WHERE id(p)=" politicianId "RETURN pa.name AS partyName ORDER BY pa.name"))) "partyName"))
+
+(defn partyNameFromId [partyId] (get (first (run-query (str "MATCH (pa:party) WHERE id(pa)=" partyId " RETURN pa.name"))) "pa.name"))
