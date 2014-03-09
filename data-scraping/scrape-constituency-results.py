@@ -1,7 +1,10 @@
-import sys, re, urlparse, string
+import sys, re, urlparse, string, py2neo, urllib
 from itertools import *
 import mechanize, bs4 as BeautifulSoup
 from py2neo import neo4j
+
+# This fixes a bug in py2neo, which apparently depends on a method that doesn't exist
+py2neo.packages.urimagic.rfc3986.Query.encode = classmethod(lambda cls, params: urllib.urlencode(params))
 
 def get_all_election_results():
   have_already_seen_1974 = False
@@ -19,8 +22,7 @@ def get_all_election_results():
       continue
     print "Getting election %s" % election_year
 
-    for region_url, region_name in get_all_region_urls(election_url):
-      print "Getting region %s" % region_name
+    for region_url in get_all_region_urls(election_url):
       for result in get_all_overall_results(region_url):
         yield result
 
@@ -47,7 +49,7 @@ def get_all_region_urls(election_url):
 
   absolute_url = lambda link: urlparse.urljoin(election_url, link["href"])
 
-  return [(absolute_url(link), unicode(link.text)) for link in region_links]
+  return [absolute_url(link) for link in region_links]
 
 def get_all_overall_results(page_url):
   browser = mechanize.Browser()
@@ -89,8 +91,6 @@ def get_1997_and_2001_results():
     for title in table_titles:
       table = title.findNext("table")
       if table and "general election" in unicode(title.string).lower():
-        print area
-        print title.string
         results_rows = table.findAll("tr")
         yield {
             "area": area,
@@ -98,8 +98,6 @@ def get_1997_and_2001_results():
             "results": filter(lambda x: x is not None,
                               [build_result(row) for row in results_rows if row.findAll("td")])
         }
-
-
 
 def build_result(results_row):
   cell_values = [unicode(cell_content) for cell_content in results_row.strings
@@ -115,11 +113,15 @@ def build_result(results_row):
       print "Unusual data, ignoring: %s" % (cell_values,)
     return None
 
+
+
 def insert_into_neo4j(election_results):
   print("Connecting to Neo4j")
   db = neo4j.GraphDatabaseService()
 
-  print("Inserting results")
+  print("Loading election data")
+  election_results = list(election_results)
+
   years = NodeDict(db, "year")
   areas = NodeDict(db, "area")
   politicians = NodeDict(db, "politician")
@@ -129,18 +131,28 @@ def insert_into_neo4j(election_results):
     if index > 0 and index % 100 == 0:
       print("Inserted %s single election results" % index)
 
-    election_node, = db.create({})
+    election_node, = db.create({"name": "Election in %s for %s" % (election["area"], election["year"])})
     election_node.add_labels("election")
 
     election_node.get_or_create_path("held_in", areas[election["area"]])
     election_node.get_or_create_path("during", years[election["year"]])
-
+                                               
     for result in election["results"]:
-      person = politicians[result["person"]]
-      person.get_or_create_path(("stood_in", {"votes": person["votes"]}), election_node)
-      person.get_or_create_path("member_of", parties[result["party"]])
+      candidacy, = db.create({})
+      candidacy.add_labels("candidacy")
 
-  print("All results inserted")
+      candidacy.get_or_create_path(("for", {"votes": result["votes"]}), election_node)
+      candidacy.get_or_create_path("by", politicians[result["person"]])
+      candidacy.get_or_create_path("for", parties[result["party"]])
+
+  print("All results loaded")
+
+def batch_insert(batch, label, keys):
+    for key in keys:
+      if label == "politician":
+        print key
+      node = batch.create({"name": key})    
+      batch.add_labels(node, label)
 
 class NodeDict(dict):
 
@@ -156,7 +168,7 @@ class NodeDict(dict):
       node.add_labels(self.label)
       self[key] = node
       return node
-
+  
 if __name__ == "__main__":
   election_results = get_all_election_results()
   insert_into_neo4j(election_results)
